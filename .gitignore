@@ -1,0 +1,16 @@
+text
+# Dependencies
+node_modules/
+venv/
+
+# Secrets & environment variables
+.env
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.log
