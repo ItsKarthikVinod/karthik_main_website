@@ -49,7 +49,7 @@ export default function Portfolio() {
 
     const getBgPath = (index) => {
       const num = String(index).padStart(3, '0');
-      return `/ezgif-jpg/ezgif-frame-${num}.jpg`;
+      return `/ezgif-jpg/ezgif-frame-${num}.webp`;
     };
 
     const resizeCanvases = () => {

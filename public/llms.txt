@@ -1,0 +1,30 @@
+# Karthik Vinod
+> Official portfolio website of Karthik Vinod, Full-Stack Developer & Software Engineer.
+
+## About
+Karthik Vinod is a Full-Stack Developer and Software Engineer specializing in end-to-end scalable web applications, backend microservices, AI-powered tools, and high-performance interactive interfaces. Available worldwide for remote roles, consulting, and engineering collaboration.
+
+## Core Technologies
+- Frontend: React.js, Next.js, TypeScript, Tailwind CSS, GSAP, Zustand
+- Backend & Cloud: Node.js, Python, REST APIs, SQL & NoSQL, Firebase, Git & GitHub
+
+## Featured Projects
+- **LifeMastery**: An all-in-one AI-powered productivity and personal growth application (React.js, Tailwind CSS, Firebase, PWA).
+- **Glint AI Headshots**: AI headshot generator transforming selfies into studio-quality portraits (React.js, TypeScript, Cloudinary, Tailwind CSS).
+- **Karthik's OS Portfolio**: Device-adaptive portfolio inspired by macOS on desktop and iOS on mobile (React.js, GSAP, Zustand).
+
+## Certifications & Honors
+- CS50's Introduction to AI with Python — Harvard University (2026)
+- Foundational C# with Microsoft — Microsoft & freeCodeCamp (2026)
+- AI Fundamentals — Google Career Certificates (2026)
+- Claude Code in Action — Anthropic (2026)
+- Frontend Developer (React) — HackerRank (2026)
+- Python Programming Certification — IITM Pravartak (IIT Madras) & GUVI (2023)
+- 1 Million Prompters AI Certificate — Dubai Future Foundation, Government of Dubai (2026)
+- Sharjah Sustainability Award (10th Cycle) — Government of Sharjah (2022)
+
+## Links & Contact
+- Website: https://karthikvinod.com
+- Email: karthik@karthikvinod.com
+- GitHub: https://github.com/ItsKarthikVinod
+- LinkedIn: https://www.linkedin.com/in/itskarthikvinod
