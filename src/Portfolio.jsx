@@ -33,7 +33,9 @@ export default function Portfolio() {
     }
     window.scrollTo(0, 0);
 
-    const TOTAL_FRAMES = 238;
+    const isMobile = window.innerWidth < 768;
+    const SOURCE_TOTAL_FRAMES = 238;
+    const TOTAL_FRAMES = isMobile ? 60 : SOURCE_TOTAL_FRAMES;
     const bgCanvas = bgCanvasRef.current;
     if (!bgCanvas) return;
 
@@ -45,23 +47,28 @@ export default function Portfolio() {
     let targetProgress = 0;
     let currentProgress = 0;
     let animId = null;
+    let preloadTimeout = null;
     let isMounted = true;
+    let lastFrameTime = null;
 
     const getBgPath = (index) => {
-      const num = String(index).padStart(3, '0');
+      const sourceIndex = isMobile
+        ? Math.round(1 + ((index - 1) * (SOURCE_TOTAL_FRAMES - 1)) / (TOTAL_FRAMES - 1))
+        : index;
+      const num = String(sourceIndex).padStart(3, '0');
       return `/ezgif-jpg/ezgif-frame-${num}.webp`;
     };
 
     const resizeCanvases = () => {
       if (!isMounted || !bgCanvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 2);
       const w = Math.floor(window.innerWidth * dpr);
       const h = Math.floor(window.innerHeight * dpr);
 
       bgCanvas.width = w;
       bgCanvas.height = h;
       bgCtx.imageSmoothingEnabled = true;
-      bgCtx.imageSmoothingQuality = 'high';
+      bgCtx.imageSmoothingQuality = isMobile ? 'medium' : 'high';
 
       if (renderedFrame > 0) {
         drawFrame(renderedFrame);
@@ -85,51 +92,64 @@ export default function Portfolio() {
       return null;
     };
 
-    const drawFrame = (frameIndex) => {
+    const drawFrame = (framePosition) => {
       if (!isMounted) return;
-      const bgImg = getBestBgImage(frameIndex);
-
       const cw = bgCanvas.width;
       const ch = bgCanvas.height;
-      const iw = bgImg ? bgImg.naturalWidth : 2560;
-      const ih = bgImg ? bgImg.naturalHeight : 1440;
+      const lowerIndex = Math.floor(framePosition);
+      const upperIndex = Math.min(TOTAL_FRAMES, lowerIndex + 1);
+      const blend = framePosition - lowerIndex;
+      const bgImg = getBestBgImage(lowerIndex);
+      const upperImg = bgImages[upperIndex]?.complete && bgImages[upperIndex].naturalWidth > 0
+        ? bgImages[upperIndex]
+        : null;
 
-      const scale = Math.max(cw / iw, ch / ih);
-      const dw = Math.ceil(iw * scale);
-      const dh = Math.ceil(ih * scale);
-      const dx = Math.floor((cw - dw) * 0.5);
-      const dy = Math.floor((ch - dh) * 0.5);
+      const drawImage = (image, alpha = 1) => {
+        const iw = image.naturalWidth;
+        const ih = image.naturalHeight;
+        const scale = Math.max(cw / iw, ch / ih);
+        const dw = Math.ceil(iw * scale);
+        const dh = Math.ceil(ih * scale);
+        const dx = Math.floor((cw - dw) * 0.5);
+        const dy = Math.floor((ch - dh) * 0.5);
 
-      // Background Canvas — ezgif-jpg frames only
-      if (bgImg) {
-        bgCtx.drawImage(bgImg, dx, dy, dw, dh);
+        bgCtx.globalAlpha = alpha;
+        bgCtx.drawImage(image, dx, dy, dw, dh);
+      };
+
+      if (bgImg) drawImage(bgImg);
+      if (isMobile && blend > 0 && upperImg && upperImg !== bgImg) {
+        drawImage(upperImg, blend);
       }
-
-      renderedFrame = frameIndex;
+      bgCtx.globalAlpha = 1;
+      renderedFrame = framePosition;
     };
 
     const preloadFrames = () => {
-      // Priority loading for frame 1
-      const firstBg = new Image();
-      firstBg.src = getBgPath(1);
+      const batchSize = 10;
+      const batchDelay = 100;
 
-      const onFirstLoaded = () => {
-        if (renderedFrame <= 1 && isMounted) {
-          drawFrame(1);
+      const loadBatch = (start) => {
+        if (!isMounted) return;
+
+        const end = Math.min(start + batchSize - 1, TOTAL_FRAMES);
+        for (let i = start; i <= end; i++) {
+          const bg = new Image();
+          bgImages[i] = bg;
+          bg.onload = () => {
+            if (isMounted && renderedFrame > 0) {
+              drawFrame(renderedFrame);
+            }
+          };
+          bg.src = getBgPath(i);
+        }
+
+        if (end < TOTAL_FRAMES) {
+          preloadTimeout = window.setTimeout(() => loadBatch(end + 1), batchDelay);
         }
       };
 
-      firstBg.onload = onFirstLoaded;
-      if (firstBg.complete) onFirstLoaded();
-      bgImages[1] = firstBg;
-
-      // Sequentially preload all remaining frames
-      for (let i = 2; i <= TOTAL_FRAMES; i++) {
-        const bg = new Image();
-        bg.src = getBgPath(i);
-        if (bg.decode) bg.decode().catch(() => { });
-        bgImages[i] = bg;
-      }
+      loadBatch(1);
     };
 
     const calculateNativeScrollProgress = () => {
@@ -139,21 +159,24 @@ export default function Portfolio() {
     };
 
     let lenis = null;
-    try {
-      lenis = new Lenis({
-        duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-        touchMultiplier: 1.5,
-      });
+    if (!isMobile) {
+      try {
+        lenis = new Lenis({
+          duration: 1.2,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          touchMultiplier: 1.5,
+        });
 
-      lenis.on('scroll', (e) => {
-        targetProgress = Math.min(1, Math.max(0, e.progress));
-      });
-    } catch (e) {
-      console.warn('Lenis initialization fallback to native scroll', e);
+        lenis.on('scroll', (e) => {
+          targetProgress = Math.min(1, Math.max(0, e.progress));
+        });
+      } catch (e) {
+        console.warn('Lenis initialization fallback to native scroll', e);
+      }
     }
 
+    targetProgress = calculateNativeScrollProgress();
     const handleScroll = () => {
       if (!lenis) {
         targetProgress = calculateNativeScrollProgress();
@@ -170,13 +193,20 @@ export default function Portfolio() {
         lenis.raf(time);
       }
 
-      const lerpFactor = lenis ? 0.22 : 0.12;
+      const deltaTime = lastFrameTime === null
+        ? 1000 / 60
+        : Math.min(50, Math.max(0, time - lastFrameTime));
+      lastFrameTime = time;
+      const smoothingDuration = lenis ? 66 : isMobile ? 70 : 130;
+      const lerpFactor = 1 - Math.exp(-deltaTime / smoothingDuration);
       currentProgress += (targetProgress - currentProgress) * lerpFactor;
 
-      const frameIndex = Math.round(1 + currentProgress * (TOTAL_FRAMES - 1));
-      const clampedFrame = Math.min(TOTAL_FRAMES, Math.max(1, frameIndex));
+      const framePosition = 1 + currentProgress * (TOTAL_FRAMES - 1);
+      const clampedFrame = isMobile
+        ? Math.min(TOTAL_FRAMES, Math.max(1, framePosition))
+        : Math.round(Math.min(TOTAL_FRAMES, Math.max(1, framePosition)));
 
-      if (clampedFrame !== renderedFrame) {
+      if (Math.abs(clampedFrame - renderedFrame) > 0.01) {
         drawFrame(clampedFrame);
       }
 
@@ -190,6 +220,7 @@ export default function Portfolio() {
     return () => {
       isMounted = false;
       if (animId) cancelAnimationFrame(animId);
+      if (preloadTimeout) window.clearTimeout(preloadTimeout);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', resizeCanvases);
       if (lenis) lenis.destroy();
